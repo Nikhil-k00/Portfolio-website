@@ -39,9 +39,15 @@ export function Section({ id, title, description, children }: Props) {
         ) : null}
         <motion.div
           className="mt-6"
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+          initial={
+            shouldReduceMotion || id === "events" ? false : { opacity: 0, y: 12 }
+          }
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
+          viewport={
+            id === "events"
+              ? { once: true, amount: 0.05 }
+              : { once: true, amount: 0.3 }
+          }
           transition={{
             duration: shouldReduceMotion ? 0 : 0.45,
             delay: shouldReduceMotion ? 0 : 0.05,
