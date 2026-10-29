@@ -1,11 +1,10 @@
 // Legacy Netlify handler retained for reference/legacy deployments.
 // Vercel deployment uses api/send-contact.js.
 
-
 import nodemailer from 'nodemailer'
 
 function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => {
+  return String(value).replace(/[&<>"'']/g, (character) => {
     const entities = {
       '&': '&amp;',
       '<': '&lt;',
@@ -33,24 +32,47 @@ export const handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }
   }
 
-  const { user_name, user_email, message } = data
-  if (!user_name || !user_email || !message) {
+  if (!data || typeof data !== 'object') {
+    data = {}
+  }
+
+  const name = String(data.user_name ?? '').trim()
+  const email = String(data.user_email ?? '').trim()
+  const body = String(data.message ?? '').trim()
+
+  if (!name || !email || !body) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing fields' }) }
   }
 
-// Required Netlify environment variables (set in the Netlify UI, never commit values):
-// - SMTP_HOST: SMTP server hostname
-// - SMTP_USER: SMTP username/authenticated sender
-// - SMTP_PASS: SMTP password or app password
-// Optional:
-// - SMTP_PORT: SMTP port (defaults to 587; use 465 for implicit TLS)
-// - TO_EMAIL: recipient address (defaults to nikhil82647@gmail.com)
+  if (name.length > 120 || email.length > 254 || body.length > 5000) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid field length' }) }
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailPattern.test(email)) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid email address' }) }
+  }
+
+  const safeSubjectName = name.replace(/[\r\n]+/g, ' ')
+
+  // Required Netlify environment variables (set in the Netlify UI, never commit values):
+  // - SMTP_HOST: SMTP server hostname
+  // - SMTP_USER: SMTP username/authenticated sender
+  // - SMTP_PASS: SMTP password or app password
+  // Optional:
+  // - SMTP_PORT: SMTP port (defaults to 587; use 465 for implicit TLS)
+  // - TO_EMAIL: recipient address (defaults to nikhil82647@gmail.com)
 
   const SMTP_HOST = process.env.SMTP_HOST
   const SMTP_PORT = process.env.SMTP_PORT || 587
   const SMTP_USER = process.env.SMTP_USER
   const SMTP_PASS = process.env.SMTP_PASS
   const TO_EMAIL = process.env.TO_EMAIL || 'nikhil82647@gmail.com'
+
+  const port = Number(SMTP_PORT)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Mail server not configured' }) }
+  }
 
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
     return { statusCode: 500, body: JSON.stringify({ error: 'Mail server not configured' }) }
@@ -60,7 +82,7 @@ export const handler = async function (event) {
     const transporter = nodemailer.createTransport({
       host: SMTP_HOST,
       port: parseInt(SMTP_PORT, 10),
-      secure: SMTP_PORT == 465, // true for 465, false for other ports
+      secure: SMTP_PORT == 465,
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
@@ -68,12 +90,12 @@ export const handler = async function (event) {
     })
 
     const mailOptions = {
-      from: SMTP_USER, // must be the authenticated sender for many SMTP providers
+      from: SMTP_USER,
       to: TO_EMAIL,
-      subject: `Portfolio contact from ${user_name}`,
-      text: `Name: ${user_name}\nEmail: ${user_email}\n\nMessage:\n${message}`,
-      html: `<p><strong>Name:</strong> ${escapeHtml(user_name)}</p><p><strong>Email:</strong> ${escapeHtml(user_email)}</p><p><strong>Message:</strong></p><p>${escapeHtml(message).replace(/\n/g, '<br/>')}</p>`,
-      replyTo: user_email,
+      subject: `Portfolio contact from ${safeSubjectName}`,
+      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${body}`,
+      html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Message:</strong></p><p>${escapeHtml(body).replace(/\n/g, '<br/>')}</p>`,
+      replyTo: email,
     }
 
     await transporter.sendMail(mailOptions)

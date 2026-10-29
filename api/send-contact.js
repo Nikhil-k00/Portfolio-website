@@ -5,7 +5,7 @@
 import nodemailer from 'nodemailer'
 
 function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => {
+  return String(value).replace(/[&<>"'']/g, (character) => {
     const entities = {
       '&': '&amp;',
       '<': '&lt;',
@@ -36,16 +36,35 @@ export default async function handler(req, res) {
     data = {}
   }
 
-  const { user_name, user_email, message } = data
-  if (!user_name || !user_email || !message) {
+  const name = String(data.user_name ?? '').trim()
+  const email = String(data.user_email ?? '').trim()
+  const body = String(data.message ?? '').trim()
+
+  if (!name || !email || !body) {
     return res.status(400).json({ error: 'Missing fields' })
   }
+
+  if (name.length > 120 || email.length > 254 || body.length > 5000) {
+    return res.status(400).json({ error: 'Invalid field length' })
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailPattern.test(email)) {
+    return res.status(400).json({ error: 'Invalid email address' })
+  }
+
+  const safeSubjectName = name.replace(/[\r\n]+/g, ' ')
 
   const SMTP_HOST = process.env.SMTP_HOST
   const SMTP_PORT = process.env.SMTP_PORT || 587
   const SMTP_USER = process.env.SMTP_USER
   const SMTP_PASS = process.env.SMTP_PASS
   const TO_EMAIL = process.env.TO_EMAIL || 'nikhil82647@gmail.com'
+
+  const port = Number(SMTP_PORT)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return res.status(500).json({ error: 'Mail server not configured' })
+  }
 
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
     return res.status(500).json({ error: 'Mail server not configured' })
@@ -65,10 +84,10 @@ export default async function handler(req, res) {
     const mailOptions = {
       from: SMTP_USER,
       to: TO_EMAIL,
-      subject: `Portfolio contact from ${user_name}`,
-      text: `Name: ${user_name}\nEmail: ${user_email}\n\nMessage:\n${message}`,
-      html: `<p><strong>Name:</strong> ${escapeHtml(user_name)}</p><p><strong>Email:</strong> ${escapeHtml(user_email)}</p><p><strong>Message:</strong></p><p>${escapeHtml(message).replace(/\n/g, '<br/>')}</p>`,
-      replyTo: user_email,
+      subject: `Portfolio contact from ${safeSubjectName}`,
+      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${body}`,
+      html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Message:</strong></p><p>${escapeHtml(body).replace(/\n/g, '<br/>')}</p>`,
+      replyTo: email,
     }
 
     await transporter.sendMail(mailOptions)
