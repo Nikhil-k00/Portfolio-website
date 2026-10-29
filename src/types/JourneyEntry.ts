@@ -4,6 +4,8 @@ export type JourneyImage = {
   alt: string
   caption?: string
   kind: "photo" | "certificate"
+  width?: number
+  height?: number
 }
 
 export type JourneyLink = {

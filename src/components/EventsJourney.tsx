@@ -67,6 +67,8 @@ const isHighlighted = isVerifiedTraining || isTeamFinalist
                       <img
                         src={event.image.src}
                         alt={event.image.alt}
+                        width={event.image.width}
+                        height={event.image.height}
                         loading="lazy"
                         decoding="async"
                         className="max-h-44 w-full object-contain sm:max-h-64"
@@ -90,6 +92,8 @@ const isHighlighted = isVerifiedTraining || isTeamFinalist
                       <img
                         src={event.image.src}
                         alt={event.image.alt}
+                        width={event.image.width}
+                        height={event.image.height}
                         loading="lazy"
                         decoding="async"
                         className="h-auto w-full object-contain"

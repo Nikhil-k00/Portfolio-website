@@ -11,10 +11,12 @@ export const events: JourneyEntry[] = [
     details:
       "Affiliation: Kerala Police Cyberdome. Recognition: Team Finalist. Contributions included working with Docker and Docker Compose, supporting container image build and deployment workflows, assisting with Linux service inspection and log analysis, and troubleshooting deployment issues. The infrastructure work involved Nginx, PostgreSQL, and service health checks. Collaborated with teammates and mentors on shared technical tasks. Technologies: Docker, Docker Compose, Linux, CI/CD, Nginx, PostgreSQL. The photograph shows the team at the event; the finalist recognition belongs to the team, while the technical contributions describe my involvement.",
     image: {
-      src: "/achievements/hackp.JPG",
+      src: "/achievements/hackp.webp",
       alt: "Hac’KP 2026 team on stage with event branding and prize cheque",
       caption: "Hac’KP 2026 — Our Team at the Event",
       kind: "photo",
+      width: 1600,
+      height: 1067,
     },
     links: [
       { label: "Official event", url: "https://hackp.kerala.gov.in/" },
@@ -30,7 +32,7 @@ export const events: JourneyEntry[] = [
     details:
       "Associated project: Multi-Agent Adaptive Learning Platform for Dyslexic Children (ages 4–14). The proposed platform aims to support personalized reading and phonics activities, gamified learning, progress tracking, and a parent dashboard. The certificate confirms participation; the Top 30 finalist status is self-reported and is not established by the certificate. Planned features are not represented as fully implemented, tested, or deployed.",
     image: {
-      src: "/achievements/INCLUCODE.png",
+      src: "/achievements/INCLUCODE.webp",
       alt: "INCLUCODE 2026 participation certificate",
       caption: "Certificate of Participation",
       kind: "certificate",
@@ -52,7 +54,7 @@ export const events: JourneyEntry[] = [
     details:
       "Organized by ISRO and powered by Hack2skill. The certificate records participation and successful idea submission. No finalist, winner, or award-recipient status is claimed.",
     image: {
-      src: "/achievements/isro.png",
+      src: "/achievements/isro.webp",
       alt: "Bharatiya Antariksh Hackathon 2026 certificate",
       caption: "Certificate of Participation",
       kind: "certificate",
