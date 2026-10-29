@@ -1,6 +1,5 @@
 // Vercel Node.js serverless function for the portfolio contact form.
-// Configure SMTP_HOST, SMTP_USER, and SMTP_PASS in Vercel project settings.
-// Optional: SMTP_PORT (defaults to 587) and TO_EMAIL (defaults to nikhil82647@gmail.com).
+// Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and CONTACT_TO_EMAIL in Vercel project settings.
 
 import nodemailer from 'nodemailer'
 
@@ -38,13 +37,14 @@ export default async function handler(req, res) {
 
   const name = String(data.user_name ?? '').trim()
   const email = String(data.user_email ?? '').trim()
+  const subject = String(data.subject ?? '').trim()
   const body = String(data.message ?? '').trim()
 
-  if (!name || !email || !body) {
+  if (!name || !email || !subject || !body) {
     return res.status(400).json({ error: 'Missing fields' })
   }
 
-  if (name.length > 120 || email.length > 254 || body.length > 5000) {
+  if (name.length > 120 || email.length > 254 || subject.length > 150 || body.length > 5000) {
     return res.status(400).json({ error: 'Invalid field length' })
   }
 
@@ -54,12 +54,13 @@ export default async function handler(req, res) {
   }
 
   const safeSubjectName = name.replace(/[\r\n]+/g, ' ')
+  const safeSubject = subject.replace(/[\r\n]+/g, ' ')
 
   const SMTP_HOST = process.env.SMTP_HOST
   const SMTP_PORT = process.env.SMTP_PORT || 587
   const SMTP_USER = process.env.SMTP_USER
   const SMTP_PASS = process.env.SMTP_PASS
-  const TO_EMAIL = process.env.TO_EMAIL || 'nikhil82647@gmail.com'
+  const CONTACT_TO_EMAIL = process.env.CONTACT_TO_EMAIL || 'nikhil82647@gmail.com'
 
   const port = Number(SMTP_PORT)
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -83,10 +84,10 @@ export default async function handler(req, res) {
 
     const mailOptions = {
       from: SMTP_USER,
-      to: TO_EMAIL,
-      subject: `Portfolio contact from ${safeSubjectName}`,
-      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${body}`,
-      html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Message:</strong></p><p>${escapeHtml(body).replace(/\n/g, '<br/>')}</p>`,
+      to: CONTACT_TO_EMAIL,
+      subject: `Portfolio contact: ${safeSubject}`,
+      text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${body}`,
+      html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Subject:</strong> ${escapeHtml(subject)}</p><p><strong>Message:</strong></p><p>${escapeHtml(body).replace(/\n/g, '<br/>')}</p>`,
       replyTo: email,
     }
 

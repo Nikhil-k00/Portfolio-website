@@ -29,7 +29,7 @@ npm install
 npm run dev
 ```
 
-Starts the Vite dev server. The contact form posts to `/api/send-contact`. In plain Vite dev mode the endpoint is not served unless you run the Vercel dev server (`vercel dev`); otherwise use a deployed preview or configure SMTP testing separately.
+Starts the Vite dev server. The contact form posts to `/api/send-contact`. In plain Vite dev mode the endpoint is not served unless you run the Vercel dev server (`vercel dev`); otherwise use a deployed preview.
 
 ## Lint
 
@@ -67,7 +67,7 @@ The contact function lives in `api/send-contact.js` and is deployed automaticall
 
 ### Contact form SMTP environment variables
 
-Set these in Vercel (Project Settings → Environment Variables). Do not commit secret values.
+Set these in Vercel (Project Settings -> Environment Variables). Do not commit secret values.
 
 Required:
 
@@ -78,13 +78,9 @@ Required:
 Optional:
 
 - `SMTP_PORT` — SMTP port (defaults to `587`; use `465` for implicit TLS)
-- `TO_EMAIL` — recipient address (defaults to `nikhil82647@gmail.com`)
+- `CONTACT_TO_EMAIL` — recipient address (defaults to `nikhil82647@gmail.com`)
 
 If the required variables are missing, the function returns `Mail server not configured` and the UI prompts visitors to email directly.
-
-### Legacy Netlify files
-
-`netlify.toml` and `netlify/functions/send-contact.js` are retained only as legacy reference for any previous Netlify deployment. They are not used by the Vercel deployment.
 
 ## Public contact
 

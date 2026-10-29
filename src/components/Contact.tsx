@@ -1,80 +1,36 @@
-import { useRef, useState, type FormEvent } from "react"
+import { useState, type FormEvent } from "react"
 import { Check, Copy, Github, Linkedin, Mail, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { profile } from "@/data/profile"
 
-type SubmitStatus = "idle" | "sending" | "success" | "error"
 type CopyStatus = "idle" | "copied" | "error"
+type SubmitStatus = "idle" | "sending" | "success" | "error"
+type FormErrors = {
+  fullName?: string
+  email?: string
+  subject?: string
+  message?: string
+}
 
 const socialIcons = {
   GitHub: Github,
   LinkedIn: Linkedin,
 }
 
+
 export function Contact() {
-  const formRef = useRef<HTMLFormElement | null>(null)
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle")
   const [status, setStatus] = useState<SubmitStatus>("idle")
   const [errorMessage, setErrorMessage] = useState("")
-  const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle")
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setStatus("sending")
-    setErrorMessage("")
-
-    try {
-      if (!formRef.current) {
-        throw new Error("The contact form is unavailable. Please email me directly.")
-      }
-
-      const formData = new FormData(formRef.current)
-      const response = await fetch("/api/send-contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_name: formData.get("user_name"),
-          user_email: formData.get("user_email"),
-          message: formData.get("message"),
-        }),
-      })
-
-      if (!response.ok) {
-        let serverMessage = ""
-        try {
-          const result: unknown = await response.json()
-          if (
-            typeof result === "object" &&
-            result !== null &&
-            "error" in result &&
-            typeof result.error === "string"
-          ) {
-            serverMessage = result.error
-          }
-        } catch {
-          serverMessage = ""
-        }
-
-        throw new Error(
-          serverMessage === "Mail server not configured"
-            ? "The contact form is not configured on this host. Please email me directly."
-            : "Your message could not be sent. Please try again or email me directly.",
-        )
-      }
-
-      setStatus("success")
-      formRef.current.reset()
-    } catch (error) {
-      console.error("Contact form submission failed", error)
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Your message could not be sent. Please email me directly.",
-      )
-      setStatus("error")
-    }
-  }
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    subject: "",
+    message: "",
+  })
 
   async function copyEmail() {
     if (!profile.email) return
@@ -88,6 +44,91 @@ export function Contact() {
     }
   }
 
+  function validateForm() {
+    const nextErrors: FormErrors = {}
+
+    if (!form.fullName.trim()) {
+      nextErrors.fullName = "Full name is required."
+    }
+    if (!form.email.trim()) {
+      nextErrors.email = "Email address is required."
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      nextErrors.email = "Enter a valid email address."
+    }
+    if (!form.subject.trim()) {
+      nextErrors.subject = "Subject is required."
+    }
+    if (!form.message.trim()) {
+      nextErrors.message = "Message is required."
+    }
+
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (status === "sending") return
+
+    setStatus("idle")
+    setErrorMessage("")
+
+    if (!validateForm()) {
+      setStatus("error")
+      setErrorMessage("Please correct the highlighted fields.")
+      return
+    }
+
+
+    setStatus("sending")
+
+    try {
+      const response = await fetch("/api/send-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_name: form.fullName.trim(),
+          user_email: form.email.trim(),
+          subject: form.subject.trim(),
+          message: form.message.trim(),
+        }),
+      })
+      if (!response.ok) {
+        let serverMessage = ""
+        try {
+          const result: unknown = await response.json()
+          if (
+            typeof result === "object" &&
+            result !== null &&
+            "message" in result &&
+            typeof result.message === "string"
+          ) {
+            serverMessage = result.message
+          }
+        } catch {
+          serverMessage = ""
+        }
+
+        throw new Error(
+          serverMessage ||
+            "Your message could not be sent. Please try again or email me directly.",
+        )
+      }
+
+      setStatus("success")
+      setForm({ fullName: "", email: "", subject: "", message: "" })
+      setErrors({})
+    } catch (error) {
+      console.error("Contact form submission failed", error)
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Your message could not be sent. Please email me directly.",
+      )
+      setStatus("error")
+    }
+  }
+
   const socials = profile.socials.filter(
     (social): social is typeof social & { platform: keyof typeof socialIcons } =>
       social.platform in socialIcons,
@@ -97,46 +138,42 @@ export function Contact() {
     <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-12">
       <div className="min-w-0">
         <p className="text-sm font-medium uppercase tracking-wide text-accent">
-          Let’s connect
+          Let's connect
         </p>
         <h3 className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
           Have something meaningful to build?
         </h3>
-        <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground sm:text-base">
-          I’m open to internship opportunities, technical collaboration, and
-          thoughtful engineering projects across development, AI, and
-          infrastructure.
+        <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+          Reach out by email or through the form.
         </p>
 
-        {profile.email && (
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <a
-              href={`mailto:${profile.email}`}
-              className="inline-flex min-h-11 min-w-0 items-center gap-2 break-all rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Mail aria-hidden="true" className="h-4 w-4 shrink-0" />
-              {profile.email}
-            </a>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={copyEmail}
-              aria-label="Copy email address"
-            >
-              {copyStatus === "copied" ? (
-                <Check aria-hidden="true" />
-              ) : (
-                <Copy aria-hidden="true" />
-              )}
-              {copyStatus === "copied" ? "Copied" : "Copy email"}
-            </Button>
-          </div>
-        )}
-        <p className="mt-2 min-h-5 text-xs text-muted-foreground" aria-live="polite">
-          {copyStatus === "error" &&
-            "Could not copy the address. Select the email link to copy it manually."}
-        </p>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <a
+            href={`mailto:${profile.email}`}
+            className="inline-flex min-h-11 min-w-0 items-center gap-2 break-all rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Mail aria-hidden="true" className="h-4 w-4 shrink-0" />
+            {profile.email}
+          </a>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={copyEmail}
+            className="min-h-11"
+          >
+            {copyStatus === "copied" ? (
+              <Check aria-hidden="true" />
+            ) : (
+              <Copy aria-hidden="true" />
+            )}
+            {copyStatus === "copied"
+              ? "Copied"
+              : copyStatus === "error"
+                ? "Copy failed"
+                : "Copy email"}
+          </Button>
+        </div>
 
         <nav aria-label="Contact social profiles" className="mt-4 flex flex-wrap gap-3">
           {socials.map(({ platform, url }) => {
@@ -159,43 +196,91 @@ export function Contact() {
       </div>
 
       <form
-        ref={formRef}
         onSubmit={handleSubmit}
         className="grid min-w-0 gap-4 rounded-xl border border-border bg-card/80 p-4 sm:p-5"
+        noValidate
       >
         <div>
           <label
             htmlFor="contact-name"
             className="mb-1.5 block text-sm font-medium text-foreground"
           >
-            Your name
+            Full Name
           </label>
           <Input
             id="contact-name"
-            name="user_name"
+            name="fullName"
             autoComplete="name"
-            placeholder="Name"
+            value={form.fullName}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, fullName: event.target.value }))
+            }
+            disabled={status === "sending"}
+            aria-invalid={Boolean(errors.fullName)}
+            aria-describedby={errors.fullName ? "contact-name-error" : undefined}
             required
-            maxLength={120}
           />
+          {errors.fullName && (
+            <p id="contact-name-error" className="mt-1.5 text-sm text-destructive">
+              {errors.fullName}
+            </p>
+          )}
         </div>
+
         <div>
           <label
             htmlFor="contact-email"
             className="mb-1.5 block text-sm font-medium text-foreground"
           >
-            Email address
+            Email Address
           </label>
           <Input
             id="contact-email"
-            name="user_email"
+            name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            value={form.email}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, email: event.target.value }))
+            }
+            disabled={status === "sending"}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "contact-email-error" : undefined}
             required
-            maxLength={254}
           />
+          {errors.email && (
+            <p id="contact-email-error" className="mt-1.5 text-sm text-destructive">
+              {errors.email}
+            </p>
+          )}
         </div>
+
+        <div>
+          <label
+            htmlFor="contact-subject"
+            className="mb-1.5 block text-sm font-medium text-foreground"
+          >
+            Subject
+          </label>
+          <Input
+            id="contact-subject"
+            name="subject"
+            value={form.subject}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, subject: event.target.value }))
+            }
+            disabled={status === "sending"}
+            aria-invalid={Boolean(errors.subject)}
+            aria-describedby={errors.subject ? "contact-subject-error" : undefined}
+            required
+          />
+          {errors.subject && (
+            <p id="contact-subject-error" className="mt-1.5 text-sm text-destructive">
+              {errors.subject}
+            </p>
+          )}
+        </div>
+
         <div>
           <label
             htmlFor="contact-message"
@@ -206,16 +291,27 @@ export function Contact() {
           <Textarea
             id="contact-message"
             name="message"
-            placeholder="Tell me a little about what you have in mind."
             rows={5}
+            value={form.message}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, message: event.target.value }))
+            }
+            disabled={status === "sending"}
+            aria-invalid={Boolean(errors.message)}
+            aria-describedby={errors.message ? "contact-message-error" : undefined}
             required
-            maxLength={5000}
           />
+          {errors.message && (
+            <p id="contact-message-error" className="mt-1.5 text-sm text-destructive">
+              {errors.message}
+            </p>
+          )}
         </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" disabled={status === "sending"} className="min-h-11">
             <Send aria-hidden="true" />
-            {status === "sending" ? "Sending…" : "Send message"}
+            {status === "sending" ? "Sending..." : "Submit Message"}
           </Button>
           <p
             role={status === "error" ? "alert" : "status"}
@@ -228,15 +324,11 @@ export function Contact() {
                   : "text-muted-foreground"
             }`}
           >
-            {status === "sending" && "Sending your message…"}
+            {status === "sending" && "Sending your message..."}
             {status === "success" && "Message sent. Thanks for reaching out!"}
             {status === "error" && errorMessage}
           </p>
         </div>
-        <p className="text-xs leading-5 text-muted-foreground">
-          Form delivery depends on the host’s mail configuration. If it isn’t
-          available, contact me directly using the email link.
-        </p>
       </form>
     </div>
   )
