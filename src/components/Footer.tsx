@@ -3,7 +3,6 @@ import { profile } from "@/data/profile"
 
 const navigation = [
   { href: "#about", label: "About" },
-  { href: "#latest", label: "Latest project" },
   { href: "#education", label: "Education" },
   { href: "#experience", label: "Experience" },
   { href: "#devops", label: "DevOps" },

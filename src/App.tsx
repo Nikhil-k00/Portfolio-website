@@ -9,7 +9,6 @@ import { Experience } from '@/components/Experience'
 import { Projects } from '@/components/Projects'
 import { Interests } from '@/components/Interests'
 import { Contact } from '@/components/Contact'
-import { LatestProjects } from '@/components/LatestProjects'
 import { DevOpsJourney } from '@/components/DevOpsJourney'
 import { EventsJourney } from '@/components/EventsJourney'
 
@@ -21,9 +20,6 @@ function App() {
         <Hero />
         <Section id="about" title="About">
           <About />
-        </Section>
-        <Section id="latest" title="Latest Project">
-          <LatestProjects />
         </Section>
         <Section id="education" title="Education">
           <Education />
